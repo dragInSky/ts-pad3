@@ -1,0 +1,35 @@
+* { box-sizing: border-box; }
+body { margin: 0; padding: 40px 16px; background: #f5f6f8; color: #202532; font: 16px/1.5 system-ui, sans-serif; }
+main { max-width: 440px; margin: auto; padding: 28px; background: white; border: 1px solid #e1e4eb; border-radius: 12px; }
+main.dashboard { max-width: 680px; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+h1 { margin: 0; font-size: 24px; font-weight: 650; }
+h2 { margin: 24px 0 16px; font-size: 20px; }
+h3 { margin: 24px 0 12px; font-size: 17px; }
+form { display: grid; gap: 16px; }
+label { display: grid; gap: 6px; font-size: 14px; font-weight: 500; }
+input, select, button { font: inherit; }
+input, select { width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid #cbd0dc; border-radius: 6px; background: white; color: inherit; }
+input:focus, select:focus, button:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+button { padding: 10px 16px; border: 0; border-radius: 6px; background: #2563eb; color: white; cursor: pointer; }
+button:hover { background: #1d4ed8; }
+.link { padding: 0; background: none; color: #1d4ed8; }
+.link:hover { background: none; text-decoration: underline; }
+.hint { margin: 16px 0 0; color: #606879; font-size: 14px; }
+form .hint { margin: 0; overflow-wrap: anywhere; }
+.error, .success { padding: 10px 12px; border-radius: 6px; font-size: 14px; }
+.error { background: #fff0f0; color: #b42318; }
+.success { background: #ecfdf3; color: #166534; }
+nav { display: flex; gap: 8px; margin-top: 20px; padding-bottom: 16px; border-bottom: 1px solid #e1e4eb; }
+nav button { background: #eef0f4; color: #454d5e; }
+nav button:not(.active):hover { background: #e2e6ed; }
+nav .active { background: #2563eb; color: white; }
+.contacts { display: grid; gap: 12px; }
+.contacts p { margin: 0; padding: 12px; border: 1px solid #e1e4eb; border-radius: 6px; overflow-wrap: anywhere; }
+.verified { color: #166534; font-size: 14px; }
+@media (max-width: 480px) {
+  body { padding: 20px 12px; }
+  main { padding: 20px; }
+  h1 { font-size: 21px; }
+  nav button { flex: 1; padding: 10px; font-size: 14px; }
+}
