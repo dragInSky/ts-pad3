@@ -1,0 +1,28 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: dz8
+      POSTGRES_USER: dz8
+      POSTGRES_PASSWORD: dz8
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - data:/var/lib/postgresql/data
+      - ./server/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dz8 -d dz8"]
+      interval: 2s
+      retries: 20
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      DATABASE_URL: postgres://dz8:dz8@db:5432/dz8
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  data:

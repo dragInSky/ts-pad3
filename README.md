@@ -1,12 +1,5 @@
-# ДЗ 3
+# ДЗ 9
 
-## Требования
+Бэкенд личного кабинета из ДЗ 8. Express + TypeScript, PostgreSQL.
 
-Нужен Node.js 18+.
-
-## Для запуска
-
-```bash
-npm install
-npm start
-```
+Фронт и сервер находятся в `dz8`. Запуск и проверка — в [README проекта](dz8/README.md).

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 
 type User = {
@@ -6,14 +6,11 @@ type User = {
   name: string;
   email: string;
   phone: string;
-  password: string;
   emailVerified: boolean;
   phoneVerified: boolean;
 };
 
 type Channel = 'email' | 'phone';
-const CODE = '123456';
-const digits = (phone: string) => phone.replace(/\D/g, '');
 
 function readForm(event: FormEvent<HTMLFormElement>) {
   event.preventDefault();
@@ -21,116 +18,96 @@ function readForm(event: FormEvent<HTMLFormElement>) {
 }
 
 export default function App() {
-  const [users, setUsers] = useState<User[]>(() => JSON.parse(localStorage.getItem('dz8-users') || '[]'));
-  const [id, setId] = useState(sessionStorage.getItem('dz8-user') || '');
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const [registration, setRegistration] = useState(false);
   const [tab, setTab] = useState('general');
   const [channel, setChannel] = useState<Channel | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const user = users.find(item => item.id === id);
   const verified = user && (user.emailVerified || user.phoneVerified);
   const method = channel || 'email';
+
+  useEffect(() => {
+    request('me').finally(() => setLoading(false));
+  }, []);
 
   function clearMessages() {
     setError('');
     setNotice('');
   }
 
-  function store(next: User[]) {
-    setUsers(next);
-    localStorage.setItem('dz8-users', JSON.stringify(next));
-  }
-
-  function update(next: User) {
-    store(users.map(item => item.id === next.id ? next : item));
-  }
-
-  function enter(userId: string) {
-    setId(userId);
-    sessionStorage.setItem('dz8-user', userId);
+  function resetView() {
     setChannel(null);
     setTab('general');
     setRegistration(false);
     clearMessages();
   }
 
-  function contactError(email: string, phone: string, exceptId = '') {
-    if (digits(phone).length < 10 || digits(phone).length > 15) return 'В телефоне должно быть от 10 до 15 цифр';
-    if (users.some(item => item.id !== exceptId && (item.email === email || digits(item.phone) === digits(phone)))) {
-      return 'Эта почта или телефон уже используются';
+  async function request(path: string, data?: Record<string, string>, method = data ? 'POST' : 'GET') {
+    clearMessages();
+    try {
+      const response = await fetch('/api/' + path, {
+        method, headers: data ? { 'Content-Type': 'application/json' } : undefined,
+        body: data ? JSON.stringify(data) : undefined
+      });
+      const result = await response.json();
+      if (response.status === 401) {
+        setUser(null);
+        if (path === 'me') return false;
+      }
+      if (!response.ok) throw new Error(result.error);
+      setUser(result);
+      return true;
+    } catch (error) {
+      setError(error instanceof TypeError ? 'Сервер недоступен' : (error as Error).message);
+      return false;
     }
-    return '';
   }
 
-  function signUp(event: FormEvent<HTMLFormElement>) {
+  async function signUp(event: FormEvent<HTMLFormElement>) {
     const data = readForm(event);
     clearMessages();
-    const email = data.email.trim().toLowerCase();
-    const phone = data.phone.trim();
-    const problem = contactError(email, phone);
-    if (!data.name.trim()) return setError('Введите имя');
-    if (problem) return setError(problem);
     if (data.password !== data.repeat) return setError('Пароли не совпадают');
-    const account: User = {
-      id: crypto.randomUUID(), name: data.name.trim(), email, phone,
-      password: data.password, emailVerified: false, phoneVerified: false
-    };
-    store([...users, account]);
-    enter(account.id);
+    if (await request('register', data)) resetView();
   }
 
-  function signIn(event: FormEvent<HTMLFormElement>) {
+  async function signIn(event: FormEvent<HTMLFormElement>) {
     const data = readForm(event);
-    clearMessages();
-    const login = data.login.trim().toLowerCase();
-    const account = users.find(item => item.email === login || digits(item.phone) === digits(login));
-    if (!account || account.password !== data.password) return setError('Неверный логин или пароль');
-    enter(account.id);
+    if (await request('login', data)) resetView();
   }
 
-  function confirm(event: FormEvent<HTMLFormElement>) {
+  async function confirm(event: FormEvent<HTMLFormElement>) {
     const data = readForm(event);
-    clearMessages();
-    if (!user) return;
-    if (data.code !== CODE) return setError('Неверный код');
-    update({ ...user, emailVerified: user.emailVerified || method === 'email', phoneVerified: user.phoneVerified || method === 'phone' });
-    setChannel(null);
-    setNotice('Контакт подтверждён');
+    if (await request('confirm', { ...data, channel: method })) {
+      setChannel(null);
+      setNotice('Контакт подтверждён');
+    }
   }
 
-  function saveProfile(event: FormEvent<HTMLFormElement>) {
+  async function saveProfile(event: FormEvent<HTMLFormElement>) {
     const data = readForm(event);
-    clearMessages();
-    if (!user) return;
-    const email = data.email.trim().toLowerCase();
-    const phone = data.phone.trim();
-    const problem = contactError(email, phone, user.id);
-    if (!data.name.trim()) return setError('Введите имя');
-    if (problem) return setError(problem);
-    update({ ...user, name: data.name.trim(), email, phone,
-      emailVerified: user.emailVerified && email === user.email,
-      phoneVerified: user.phoneVerified && digits(phone) === digits(user.phone)
-    });
-    setNotice('Данные сохранены');
+    if (await request('profile', data, 'PATCH')) setNotice('Данные сохранены');
   }
 
-  function savePassword(event: FormEvent<HTMLFormElement>) {
+  async function savePassword(event: FormEvent<HTMLFormElement>) {
+    const form = event.currentTarget;
     const data = readForm(event);
     clearMessages();
-    if (!user) return;
-    if (data.current !== user.password) return setError('Текущий пароль неверный');
     if (data.password !== data.repeat) return setError('Пароли не совпадают');
-    update({ ...user, password: data.password });
-    event.currentTarget.reset();
-    setNotice('Пароль изменён');
+    if (await request('password', data, 'PATCH')) {
+      form.reset();
+      setNotice('Пароль изменён');
+    }
   }
+
+  if (loading) return <main>Загрузка...</main>;
 
   return (
     <main className={verified && !channel ? 'dashboard' : ''}>
       <header>
         <h1>Личный кабинет</h1>
-        {user && <button className="link" onClick={() => enter('')}>Выйти</button>}
+        {user && <button className="link" onClick={async () => { if (await request('logout', {})) resetView(); }}>Выйти</button>}
       </header>
       {error && <p className="error" role="alert">{error}</p>}
       {notice && <p className="success" role="status">{notice}</p>}
